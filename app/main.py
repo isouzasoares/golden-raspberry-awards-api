@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.controllers import movies
 from app.core.config import Settings
 from app.db.session import create_database_engine, create_session_factory
 from app.models import Base
@@ -44,12 +45,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         finally:
             engine.dispose()
 
-    return FastAPI(
+    application = FastAPI(
         title="Golden Raspberry Awards API",
         description="Nominees and winners of the Worst Picture category.",
         version="1.0.0",
         lifespan=lifespan,
     )
+    application.include_router(movies.router, prefix=settings.api_prefix)
+    return application
 
 
 app = create_app()
