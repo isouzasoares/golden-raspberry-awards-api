@@ -1,4 +1,147 @@
 # Golden Raspberry Awards API
 
 RESTful API that exposes the nominees and winners of the Golden Raspberry Awards
-*Worst Picture* category.
+*Worst Picture* category, including the producers with the shortest and the
+longest interval between two consecutive awards.
+
+The movie list (`data/movielist.csv`) is loaded into an in-memory SQLite database
+every time the application starts, so no external installation is required.
+
+## Tech stack
+
+- Python 3.11+
+- [FastAPI](https://fastapi.tiangolo.com/) + Uvicorn
+- SQLAlchemy 2.0 on top of an embedded, in-memory SQLite database
+- pytest for the integration tests, ruff for linting (PEP 8 / PEP 257)
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+```
+
+Run the application:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The API is served at <http://localhost:8000>, with interactive documentation at
+<http://localhost:8000/docs>.
+
+To load a different movie list, point `MOVIES_CSV_PATH` to a `;`-delimited file
+with the columns `year;title;studios;producers;winner`:
+
+```bash
+MOVIES_CSV_PATH=/path/to/movies.csv uvicorn app.main:app
+```
+
+## Running the tests
+
+```bash
+pytest
+```
+
+All tests are integration tests: each one starts the application, imports a
+CSV file and exercises the HTTP endpoints. Besides the bundled movie list, the
+suite builds alternative datasets to check ties, repeated producers, shared
+credits, same-year awards and empty results.
+
+Lint and formatting checks:
+
+```bash
+ruff check .
+ruff format --check .
+```
+
+## API
+
+All routes are read-only and live under `/api/v1`. The API follows level 2 of
+the Richardson Maturity Model: resources are addressed by URI, accessed through
+HTTP verbs and answered with meaningful status codes (`200`, `404`, `405`,
+`422`).
+
+| Method | Route                               | Description                                          |
+|--------|-------------------------------------|------------------------------------------------------|
+| GET    | `/api/v1/producers/award-intervals` | Producers with the shortest and longest award gap    |
+| GET    | `/api/v1/movies`                    | Paginated nominees (`year`, `winner`, `limit`, `offset`) |
+| GET    | `/api/v1/movies/{id}`               | A single nominee                                     |
+
+### Award intervals
+
+```bash
+curl http://localhost:8000/api/v1/producers/award-intervals
+```
+
+```json
+{
+  "min": [
+    {"producer": "Joel Silver", "interval": 1, "previousWin": 1990, "followingWin": 1991}
+  ],
+  "max": [
+    {"producer": "Matthew Vaughn", "interval": 13, "previousWin": 2002, "followingWin": 2015}
+  ]
+}
+```
+
+Rules:
+
+- Only movies flagged as winners count as awards.
+- Credits such as `"A, B and C"` are split into individual producers.
+- Only **consecutive** awards of the same producer are compared.
+- Every interval tied for the minimum (or maximum) is returned, so a producer
+  may appear more than once and in both lists.
+- Two awards in the same year produce an interval of `0`.
+- When no producer has won more than once, both lists are empty.
+
+### Movies
+
+```bash
+curl "http://localhost:8000/api/v1/movies?winner=true&limit=2"
+```
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "year": 1980,
+      "title": "Can't Stop the Music",
+      "studios": ["Associated Film Distribution"],
+      "producers": ["Allan Carr"],
+      "winner": true
+    }
+  ],
+  "total": 42,
+  "limit": 2,
+  "offset": 0
+}
+```
+
+## Project layout
+
+```text
+app/
+├── main.py            # application factory, startup import
+├── core/config.py     # settings (environment variables)
+├── db/session.py      # in-memory SQLite engine and sessions
+├── models/            # SQLAlchemy ORM models
+├── schemas/           # Pydantic request/response models
+├── repositories/      # data access (SQL queries)
+├── services/          # business rules and CSV import
+└── controllers/       # FastAPI routers (HTTP layer)
+tests/integration/     # end-to-end tests over HTTP
+data/movielist.csv     # dataset loaded on startup
+docs/                  # development notes
+```
+
+The award intervals are computed by the database with the `LAG` window function
+partitioned by producer; the service layer only selects the extremes, keeping
+the work linear in the number of awards.
+
+## AI-assisted development
+
+This project was built with an AI coding agent. The prompts and decisions are
+recorded in [docs/ai-assisted-development.md](docs/ai-assisted-development.md).
