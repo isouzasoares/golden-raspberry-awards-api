@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.controllers import movies
+from app.controllers import movies, producers
 from app.core.config import Settings
 from app.db.session import create_database_engine, create_session_factory
 from app.models import Base
@@ -52,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     application.include_router(movies.router, prefix=settings.api_prefix)
+    application.include_router(producers.router, prefix=settings.api_prefix)
     return application
 
 
