@@ -158,10 +158,14 @@ class MovieImporter:
         Returns:
             The number of imported movies.
         """
-        movies = [self._build_movie(record) for record in records]
-        self._session.add_all(movies)
+        imported = 0
+        for record in records:
+            # Adding each movie as soon as it is built keeps the generated ids
+            # in file order (cascades would otherwise reorder the inserts).
+            self._session.add(self._build_movie(record))
+            imported += 1
         self._session.commit()
-        return len(movies)
+        return imported
 
     def _build_movie(self, record: MovieRecord) -> Movie:
         return Movie(
