@@ -18,6 +18,10 @@ moving on.
 3. **Identity / repository** — "Create the project under `clones/`, configure
    git with my personal e-mail and commit by feature; I will provide the remote
    later."
+4. **Dataset outside the application** — "Shouldn't the CSV come from outside,
+   e.g. Docker? The application should not know about the CSV itself; explain in
+   the docs how to change it."
+5. **Layering review** — "The controllers look more like views — is that right?"
 
 ## Agent workflow and decisions
 
@@ -32,7 +36,10 @@ moving on.
 | Edge cases | Same-year wins → interval `0`; no repeat winners → empty lists. | Documented in the README and covered by tests. |
 | Validation | Results cross-checked against an independent script before writing the tests. | Expected: min Joel Silver 1990→1991, max Matthew Vaughn 2002→2015. |
 | Tests | Integration tests only, through `TestClient`, with generated datasets. | Guards against different input data in production. |
-| Tooling | `ruff` (PEP 8 + Google-style docstrings) and `pytest` run after each step. | Clean lint and 25 passing tests before each commit. |
+| External dataset | Removed the default CSV path; `MOVIES_CSV_PATH` is required. Added Dockerfile and compose mounting `MOVIES_CSV`. | The dataset is deployment configuration, not code; startup fails fast without it. |
+| Port conflict | Compose failed on port 8000 already in use on the host. | Host port made configurable through `API_PORT`. |
+| Thin controllers | Moved paging/lookup into `MovieService`; services injected with `Depends`. | Controllers only translate HTTP ↔ service calls; schemas act as the view. |
+| Tooling | `ruff` (PEP 8 + Google-style docstrings) and `pytest` run after each step. | Clean lint and all tests passing before each commit. |
 
 ## Commands run by the agent
 
@@ -40,4 +47,5 @@ moving on.
 uv venv .venv && uv pip install -e ".[dev]"
 ruff format . && ruff check .
 pytest -q
+docker compose up -d --build   # verified with the sample and a custom CSV
 ```
