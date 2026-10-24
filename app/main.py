@@ -9,10 +9,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.controllers import movies, producers
 from app.core.config import Settings
 from app.db.session import create_database_engine, create_session_factory
 from app.models import Base
+from app.routers import movies, producers
 from app.services.movie_importer import MovieImporter
 
 logger = logging.getLogger(__name__)

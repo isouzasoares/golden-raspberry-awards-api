@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Query, status
 
-from app.controllers.dependencies import MovieServiceDep
+from app.routers.dependencies import MovieServiceDep
 from app.schemas.movie import MoviePage, MovieRead
 from app.services.exceptions import NotFoundError
 

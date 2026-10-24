@@ -1,4 +1,4 @@
-"""Dependencies shared by the controllers."""
+"""Dependencies shared by the routers."""
 
 from collections.abc import Iterator
 from typing import Annotated

@@ -152,22 +152,23 @@ app/
 ├── main.py            # application factory, startup import
 ├── core/config.py     # settings (environment variables)
 ├── db/session.py      # in-memory SQLite engine and sessions
-├── models/            # Model: SQLAlchemy ORM entities
-├── schemas/           # View: Pydantic representations returned by the API
-├── controllers/       # Controller: HTTP routes, delegate to the services
+├── routers/           # HTTP routes, delegate to the services
 ├── services/          # use cases and business rules, CSV import
-└── repositories/      # data access (SQL queries)
+├── repositories/      # data access (SQL queries)
+├── models/            # SQLAlchemy ORM entities
+└── schemas/           # Pydantic payloads returned by the API
 tests/integration/     # end-to-end tests over HTTP
 data/movielist.csv     # sample dataset
 Dockerfile, docker-compose.yml
 docs/                  # development notes
 ```
 
-The code follows MVC adapted to a JSON API: the *view* is the serialized
-representation (Pydantic schemas), and the controllers only translate HTTP
-into service calls and service errors into status codes. Business rules live
-in the services, which depend on repositories for persistence; each layer is
-wired per request through FastAPI dependency injection.
+Requests flow `routers → services → repositories → models`. Routers only
+translate HTTP into service calls and service errors into status codes;
+business rules live in the services; SQL stays in the repositories. ORM models
+and API schemas are kept apart so the database layout never leaks into the
+public contract. Each layer is wired per request through FastAPI dependency
+injection.
 
 The award intervals are computed by the database with the `LAG` window function
 partitioned by producer; the service layer only selects the extremes, keeping

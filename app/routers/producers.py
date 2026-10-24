@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.controllers.dependencies import AwardIntervalServiceDep
+from app.routers.dependencies import AwardIntervalServiceDep
 from app.schemas.producer import ProducerAwardIntervals
 
 router = APIRouter(prefix="/producers", tags=["producers"])

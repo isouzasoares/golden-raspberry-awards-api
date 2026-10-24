@@ -22,6 +22,8 @@ moving on.
    e.g. Docker? The application should not know about the CSV itself; explain in
    the docs how to change it."
 5. **Layering review** — "The controllers look more like views — is that right?"
+6. **Naming** — "What about working with routers, services and models? Is it
+   more usual?"
 
 ## Agent workflow and decisions
 
@@ -39,6 +41,7 @@ moving on.
 | External dataset | Removed the default CSV path; `MOVIES_CSV_PATH` is required. Added Dockerfile and compose mounting `MOVIES_CSV`. | The dataset is deployment configuration, not code; startup fails fast without it. |
 | Port conflict | Compose failed on port 8000 already in use on the host. | Host port made configurable through `API_PORT`. |
 | Thin controllers | Moved paging/lookup into `MovieService`; services injected with `Depends`. | Controllers only translate HTTP ↔ service calls; schemas act as the view. |
+| FastAPI conventions | Renamed `controllers/` to `routers/`; kept `schemas/` and `repositories/`. | Matches the FastAPI documentation; ORM and API contracts stay separate, SQL stays isolated. |
 | Tooling | `ruff` (PEP 8 + Google-style docstrings) and `pytest` run after each step. | Clean lint and all tests passing before each commit. |
 
 ## Commands run by the agent
