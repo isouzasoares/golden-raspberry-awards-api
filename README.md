@@ -4,39 +4,64 @@ RESTful API that exposes the nominees and winners of the Golden Raspberry Awards
 *Worst Picture* category, including the producers with the shortest and the
 longest interval between two consecutive awards.
 
-The movie list (`data/movielist.csv`) is loaded into an in-memory SQLite database
-every time the application starts, so no external installation is required.
+The movie list CSV is loaded into an in-memory SQLite database every time the
+application starts, so no database installation is required.
 
 ## Tech stack
 
 - Python 3.11+
 - [FastAPI](https://fastapi.tiangolo.com/) + Uvicorn
 - SQLAlchemy 2.0 on top of an embedded, in-memory SQLite database
+- Docker / Docker Compose (optional)
 - pytest for the integration tests, ruff for linting (PEP 8 / PEP 257)
 
-## Getting started
+## Movie list
+
+The application does not ship with a hard-coded dataset: the CSV to load is
+always given through the `MOVIES_CSV_PATH` environment variable. The file must
+be `;`-delimited with the header `year;title;studios;producers;winner`, where
+`winner` is `yes` for the award winners and empty otherwise.
+
+A sample dataset is available at `data/movielist.csv`.
+
+## Running with Docker
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-```
-
-Run the application:
-
-```bash
-uvicorn app.main:app --reload
+docker compose up --build
 ```
 
 The API is served at <http://localhost:8000>, with interactive documentation at
 <http://localhost:8000/docs>.
 
-To load a different movie list, point `MOVIES_CSV_PATH` to a `;`-delimited file
-with the columns `year;title;studios;producers;winner`:
+The compose file mounts `data/movielist.csv` into the container. To load
+another movie list, point `MOVIES_CSV` to the file on the host (and optionally
+`API_PORT` to another host port):
 
 ```bash
-MOVIES_CSV_PATH=/path/to/movies.csv uvicorn app.main:app
+MOVIES_CSV=/path/to/movies.csv API_PORT=8080 docker compose up
 ```
+
+Without compose:
+
+```bash
+docker build -t golden-raspberry-awards-api .
+docker run --rm -p 8000:8000 \
+  -v /path/to/movies.csv:/data/movielist.csv:ro \
+  golden-raspberry-awards-api
+```
+
+## Running locally
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+
+MOVIES_CSV_PATH=data/movielist.csv uvicorn app.main:create_app --factory --reload
+```
+
+The application refuses to start when `MOVIES_CSV_PATH` is missing or when the
+file is invalid (the error message points to the offending line).
 
 ## Running the tests
 
@@ -45,7 +70,7 @@ pytest
 ```
 
 All tests are integration tests: each one starts the application, imports a
-CSV file and exercises the HTTP endpoints. Besides the bundled movie list, the
+CSV file and exercises the HTTP endpoints. Besides the sample movie list, the
 suite builds alternative datasets to check ties, repeated producers, shared
 credits, same-year awards and empty results.
 
@@ -133,7 +158,8 @@ app/
 ├── services/          # business rules and CSV import
 └── controllers/       # FastAPI routers (HTTP layer)
 tests/integration/     # end-to-end tests over HTTP
-data/movielist.csv     # dataset loaded on startup
+data/movielist.csv     # sample dataset
+Dockerfile, docker-compose.yml
 docs/                  # development notes
 ```
 

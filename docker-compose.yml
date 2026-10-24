@@ -1,0 +1,8 @@
+services:
+  api:
+    build: .
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      # Override with: MOVIES_CSV=/path/to/movies.csv docker compose up
+      - ${MOVIES_CSV:-./data/movielist.csv}:/data/movielist.csv:ro

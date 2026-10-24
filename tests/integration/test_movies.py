@@ -5,16 +5,16 @@ import csv
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.config import DEFAULT_CSV_PATH, Settings
+from app.core.config import CSV_PATH_ENV, ConfigurationError, Settings
 from app.main import create_app
 from app.services.movie_importer import MovieImportError
-from tests.integration.conftest import ClientFactory
+from tests.integration.conftest import BUNDLED_CSV_PATH, ClientFactory
 
 URL = "/api/v1/movies"
 
 
 def load_bundled_rows() -> list[dict[str, str]]:
-    with DEFAULT_CSV_PATH.open(encoding="utf-8-sig", newline="") as csv_file:
+    with BUNDLED_CSV_PATH.open(encoding="utf-8-sig", newline="") as csv_file:
         return list(csv.DictReader(csv_file, delimiter=";"))
 
 
@@ -136,3 +136,17 @@ def test_startup_fails_on_invalid_csv(tmp_path) -> None:
         TestClient(create_app(Settings(csv_path=csv_path))),
     ):
         pass
+
+
+def test_csv_path_is_read_from_environment(monkeypatch) -> None:
+    monkeypatch.setenv(CSV_PATH_ENV, str(BUNDLED_CSV_PATH))
+
+    with TestClient(create_app()) as client:
+        assert client.get(URL).json()["total"] == 206
+
+
+def test_startup_requires_csv_path(monkeypatch) -> None:
+    monkeypatch.delenv(CSV_PATH_ENV, raising=False)
+
+    with pytest.raises(ConfigurationError, match=CSV_PATH_ENV):
+        create_app()

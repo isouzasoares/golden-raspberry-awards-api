@@ -1,4 +1,7 @@
-"""FastAPI application factory and ASGI entry point."""
+"""FastAPI application factory.
+
+Serve it with ``uvicorn app.main:create_app --factory``.
+"""
 
 import logging
 from collections.abc import AsyncIterator
@@ -54,6 +57,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(movies.router, prefix=settings.api_prefix)
     application.include_router(producers.router, prefix=settings.api_prefix)
     return application
-
-
-app = create_app()

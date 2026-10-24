@@ -6,9 +6,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.config import DEFAULT_CSV_PATH, Settings
+from app.core.config import Settings
 from app.main import create_app
 
+BUNDLED_CSV_PATH = Path(__file__).resolve().parents[2] / "data" / "movielist.csv"
 CSV_HEADER = "year;title;studios;producers;winner"
 
 ClientFactory = Callable[[str], TestClient]
@@ -17,7 +18,7 @@ ClientFactory = Callable[[str], TestClient]
 @pytest.fixture(scope="session")
 def client() -> Iterator[TestClient]:
     """Application loaded with the bundled movie list."""
-    with TestClient(create_app(Settings(csv_path=DEFAULT_CSV_PATH))) as test_client:
+    with TestClient(create_app(Settings(csv_path=BUNDLED_CSV_PATH))) as test_client:
         yield test_client
 
 
