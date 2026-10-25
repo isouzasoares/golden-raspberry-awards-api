@@ -27,6 +27,11 @@ moving on.
 7. **Lifespan** — "Is this lifespan needed? I don't think so."
 8. **Seeding script** — "I don't like shipping the CSV; what about a script
    that loads the CSV from the path into the database when Docker starts?"
+9. **Name parsing** — "There is a bug: a name like Joel Silver may be separated
+   by a comma or the word `and`, maybe in lower or upper case. A movie can have
+   N producers and/or N studios; split them while loading the CSV and fix the
+   tables, smart enough to understand where one name ends and the next starts."
+10. **Slug** — "Maybe it makes sense to create a slug of the name."
 
 ## Agent workflow and decisions
 
@@ -47,6 +52,8 @@ moving on.
 | FastAPI conventions | Renamed `controllers/` to `routers/`; kept `schemas/` and `repositories/`. | Matches the FastAPI documentation; ORM and API contracts stay separate, SQL stays isolated. |
 | Lifespan | Kept the FastAPI lifespan for the startup import. | Idiomatic FastAPI (`on_event` is deprecated); building the app has no side effects; shutdown disposes the engine. |
 | Seeding script | Not adopted. | A separate process cannot populate the API's in-memory database; it would require a file-based SQLite. |
+| Name parsing | Separators matched case-insensitively (`,`, `&`, `and`); names cleaned (NFKC, whitespace). | `"A AND B"` was read as a single producer and `JOEL SILVER` / `Joel Silver` as two, splitting award histories. |
+| Slug identity | `producers`/`studios` got a unique `slug` (no case, accents or punctuation); best-cased spelling kept for display. | Different spellings of one person share their awards; verified that no names in the dataset are merged by mistake. |
 | Tooling | `ruff` (PEP 8 + Google-style docstrings) and `pytest` run after each step. | Clean lint and all tests passing before each commit. |
 
 ## Commands run by the agent
