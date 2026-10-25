@@ -27,11 +27,16 @@ moving on.
 7. **Lifespan** — "Is this lifespan needed? I don't think so."
 8. **Seeding script** — "I don't like shipping the CSV; what about a script
    that loads the CSV from the path into the database when Docker starts?"
-9. **Name parsing** — "There is a bug: a name like Joel Silver may be separated
-   by a comma or the word `and`, maybe in lower or upper case. A movie can have
-   N producers and/or N studios; split them while loading the CSV and fix the
-   tables, smart enough to understand where one name ends and the next starts."
-10. **Slug** — "Maybe it makes sense to create a slug of the name."
+9. **Ties** — "In the min and max lists, isn't there another producer with an
+   interval of 1 or 13? If there is a tie, it must be returned."
+10. **Name parsing** — "There is a bug: a name like Joel Silver may be separated
+    by a comma or the word `and`, maybe in lower or upper case. A movie can have
+    N producers and/or N studios; split them while loading the CSV and fix the
+    tables, smart enough to understand where one name ends and the next starts."
+11. **Slug** — "Maybe it makes sense to create a slug of the name."
+12. **Separators without spaces** — "When there is a comma without spaces, is it
+    split too?"
+13. **Import tests** — "Did you also write a test for this CSV import?"
 
 ## Agent workflow and decisions
 
@@ -52,8 +57,10 @@ moving on.
 | FastAPI conventions | Renamed `controllers/` to `routers/`; kept `schemas/` and `repositories/`. | Matches the FastAPI documentation; ORM and API contracts stay separate, SQL stays isolated. |
 | Lifespan | Kept the FastAPI lifespan for the startup import. | Idiomatic FastAPI (`on_event` is deprecated); building the app has no side effects; shutdown disposes the engine. |
 | Seeding script | Not adopted. | A separate process cannot populate the API's in-memory database; it would require a file-based SQLite. |
+| Ties | Listed every interval in the dataset (1, 6, 9, 13) and pointed to the tie tests. | No change: all intervals equal to the min/max are already returned. |
 | Name parsing | Separators matched case-insensitively (`,`, `&`, `and`); names cleaned (NFKC, whitespace). | `"A AND B"` was read as a single producer and `JOEL SILVER` / `Joel Silver` as two, splitting award histories. |
 | Slug identity | `producers`/`studios` got a unique `slug` (no case, accents or punctuation); best-cased spelling kept for display. | Different spellings of one person share their awards; verified that no names in the dataset are merged by mistake. |
+| Separators without spaces | Verified `A,B`, `A ,B`, `A,B,AND C` and `A&B`; added an integration test. | Spaces around `,` and `&` are optional; `and` needs surrounding spaces so names like `Anderson` stay intact. |
 | Tooling | `ruff` (PEP 8 + Google-style docstrings) and `pytest` run after each step. | Clean lint and all tests passing before each commit. |
 
 ## Commands run by the agent
