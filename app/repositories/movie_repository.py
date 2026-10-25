@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Movie
@@ -49,21 +49,19 @@ class MovieRepository:
         Returns:
             The requested page and the total number of matching movies.
         """
-        query = self._filtered(select(Movie), year=year, winner=winner)
+        filters = {"year": year, "winner": winner}
+        criteria = {
+            field: value for field, value in filters.items() if value is not None
+        }
+
         total = self._session.scalar(
-            self._filtered(select(func.count(Movie.id)), year=year, winner=winner)
+            select(func.count()).select_from(Movie).filter_by(**criteria)
         )
         movies = self._session.scalars(
-            query.order_by(Movie.year, Movie.title, Movie.id)
+            select(Movie)
+            .filter_by(**criteria)
+            .order_by(Movie.year, Movie.title, Movie.id)
             .limit(limit)
             .offset(offset)
         ).all()
         return movies, total or 0
-
-    @staticmethod
-    def _filtered(query: Select, *, year: int | None, winner: bool | None) -> Select:
-        if year is not None:
-            query = query.where(Movie.year == year)
-        if winner is not None:
-            query = query.where(Movie.winner.is_(winner))
-        return query
