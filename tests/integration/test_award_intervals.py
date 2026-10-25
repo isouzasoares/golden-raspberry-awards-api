@@ -186,3 +186,65 @@ def test_empty_lists_when_no_producer_won_twice(client_for: ClientFactory) -> No
 
 def test_unsupported_method_is_rejected(client: TestClient) -> None:
     assert client.post(URL).status_code == 405
+
+
+def test_producer_names_match_regardless_of_case_and_spacing(
+    client_for: ClientFactory,
+) -> None:
+    client = client_for(
+        """
+        1990;Movie A;Studio;JOEL SILVER;yes
+        1991;Movie B;Studio;Joel Silver;yes
+        2000;Movie C;Studio;joel   silver;yes
+        """
+    )
+
+    body = client.get(URL).json()
+
+    assert body["min"] == [interval("Joel Silver", 1990, 1991)]
+    assert body["max"] == [interval("Joel Silver", 1991, 2000)]
+
+
+def test_separators_are_recognized_in_any_case(client_for: ClientFactory) -> None:
+    client = client_for(
+        """
+        2000;Movie A;Studio;Producer 1 AND Producer 2;yes
+        2002;Movie B;Studio;Producer 2 & Producer 3;yes
+        2005;Movie C;Studio;Producer 3, Producer 4, And Producer 1;yes
+        """
+    )
+
+    body = client.get(URL).json()
+
+    assert body["min"] == [interval("Producer 2", 2000, 2002)]
+    assert body["max"] == [interval("Producer 1", 2000, 2005)]
+
+
+def test_names_containing_and_are_not_split(client_for: ClientFactory) -> None:
+    client = client_for(
+        """
+        2000;Movie A;Studio;Wes Anderson and Sandra Bland;yes
+        2004;Movie B;Studio;Wes Anderson;yes
+        """
+    )
+
+    body = client.get(URL).json()
+
+    assert body["min"] == body["max"] == [interval("Wes Anderson", 2000, 2004)]
+
+
+def test_producer_names_match_regardless_of_accents_and_punctuation(
+    client_for: ClientFactory,
+) -> None:
+    client = client_for(
+        """
+        2000;Movie A;Studio;José Ferrer and Robert W. Cort;yes
+        2003;Movie B;Studio;Jose Ferrer;yes
+        2010;Movie C;Studio;Robert W Cort;yes
+        """
+    )
+
+    body = client.get(URL).json()
+
+    assert body["min"] == [interval("José Ferrer", 2000, 2003)]
+    assert body["max"] == [interval("Robert W. Cort", 2000, 2010)]

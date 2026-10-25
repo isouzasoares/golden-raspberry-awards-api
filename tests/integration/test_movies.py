@@ -124,6 +124,22 @@ def test_custom_movie_list_is_loaded(client_for: ClientFactory) -> None:
     assert body["items"][1]["winner"] is False
 
 
+def test_names_are_split_and_deduplicated(client_for: ClientFactory) -> None:
+    client = client_for(
+        """
+        2020;First;Studio A AND studio a & Studio B;JOEL SILVER, Joel Silver;yes
+        2021;Second;STUDIO B;joel silver and Steven Perry;
+        """
+    )
+
+    first, second = client.get(URL).json()["items"]
+
+    assert first["studios"] == ["Studio A", "Studio B"]
+    assert first["producers"] == ["Joel Silver"]
+    assert second["studios"] == ["Studio B"]
+    assert second["producers"] == ["Joel Silver", "Steven Perry"]
+
+
 def test_startup_fails_on_invalid_csv(tmp_path) -> None:
     csv_path = tmp_path / "invalid.csv"
     csv_path.write_text(

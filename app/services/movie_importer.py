@@ -1,22 +1,23 @@
 """Import of the movie list CSV into the database."""
 
 import csv
-import re
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.names import is_better_spelling, slugify, split_names
 from app.models import Movie, Producer, Studio
+from app.models.movie import NamedEntity
 
 CSV_DELIMITER = ";"
 REQUIRED_COLUMNS = frozenset({"year", "title", "studios", "producers", "winner"})
 WINNER_FLAG = "yes"
 
-# Splits "A, B and C" (also "A, B, and C") into ["A", "B", "C"].
-_NAME_SEPARATOR = re.compile(r"\s*,\s*(?:and\s+)?|\s+and\s+")
+EntityT = TypeVar("EntityT", bound=NamedEntity)
 
 
 class MovieImportError(ValueError):
@@ -32,25 +33,6 @@ class MovieRecord:
     studios: tuple[str, ...]
     producers: tuple[str, ...]
     winner: bool
-
-
-def split_names(raw: str) -> tuple[str, ...]:
-    """Split a list of names written in natural language.
-
-    Duplicates are removed while preserving the original order.
-
-    Args:
-        raw: Names separated by commas and/or ``and``, e.g. ``"A, B and C"``.
-
-    Returns:
-        The individual names.
-
-    Examples:
-        >>> split_names("Allan Carr, Bob Cavallo and Joe Ruffalo")
-        ('Allan Carr', 'Bob Cavallo', 'Joe Ruffalo')
-    """
-    names = (name.strip() for name in _NAME_SEPARATOR.split(raw))
-    return tuple(dict.fromkeys(name for name in names if name))
 
 
 def read_movie_records(csv_path: Path) -> Iterator[MovieRecord]:
@@ -123,7 +105,11 @@ def _parse_row(row: dict[str, str], line: int) -> MovieRecord:
 
 
 class MovieImporter:
-    """Persist movie records, reusing producers and studios by name."""
+    """Persist movie records, reusing producers and studios by name.
+
+    Names are matched by slug, so "Joel Silver" and "JOEL  SILVER" resolve to
+    the same producer.
+    """
 
     def __init__(self, session: Session) -> None:
         """Initialize the importer.
@@ -132,8 +118,8 @@ class MovieImporter:
             session: Session used to persist the records.
         """
         self._session = session
-        self._producers = {p.name: p for p in session.scalars(select(Producer))}
-        self._studios = {s.name: s for s in session.scalars(select(Studio))}
+        self._producers = {p.slug: p for p in session.scalars(select(Producer))}
+        self._studios = {s.slug: s for s in session.scalars(select(Studio))}
 
     def import_csv(self, csv_path: Path) -> int:
         """Load every movie of a CSV file in a single transaction.
@@ -177,11 +163,19 @@ class MovieImporter:
         )
 
     def _get_or_create_producer(self, name: str) -> Producer:
-        if name not in self._producers:
-            self._producers[name] = Producer(name=name)
-        return self._producers[name]
+        return self._get_or_create(self._producers, Producer, name)
 
     def _get_or_create_studio(self, name: str) -> Studio:
-        if name not in self._studios:
-            self._studios[name] = Studio(name=name)
-        return self._studios[name]
+        return self._get_or_create(self._studios, Studio, name)
+
+    @staticmethod
+    def _get_or_create(
+        cache: dict[str, EntityT], model: type[EntityT], name: str
+    ) -> EntityT:
+        key = slugify(name)
+        entity = cache.get(key)
+        if entity is None:
+            entity = cache[key] = model(name=name)
+        elif is_better_spelling(name, entity.name):
+            entity.name = name
+        return entity

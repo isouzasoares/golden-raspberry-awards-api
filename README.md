@@ -114,7 +114,12 @@ curl http://localhost:8000/api/v1/producers/award-intervals
 Rules:
 
 - Only movies flagged as winners count as awards.
-- Credits such as `"A, B and C"` are split into individual producers.
+- Credits are split into individual producers and studios on commas, `&` and
+  the word `and`, in any case (`"A, B AND C"`, `"A & B"`, `"A, B, and C"`).
+  Names that merely contain "and" (e.g. `Anderson`) are not split.
+- Each producer/studio is identified by a slug that ignores case, spacing,
+  accents and punctuation, so `Joel Silver`, `JOEL  SILVER` and `joel silver`
+  are the same producer. The best-cased spelling is the one returned.
 - Only **consecutive** awards of the same producer are compared.
 - Every interval tied for the minimum (or maximum) is returned, so a producer
   may appear more than once and in both lists.
