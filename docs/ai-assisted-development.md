@@ -24,6 +24,9 @@ moving on.
 5. **Layering review** — "The controllers look more like views — is that right?"
 6. **Naming** — "What about working with routers, services and models? Is it
    more usual?"
+7. **Lifespan** — "Is this lifespan needed? I don't think so."
+8. **Seeding script** — "I don't like shipping the CSV; what about a script
+   that loads the CSV from the path into the database when Docker starts?"
 
 ## Agent workflow and decisions
 
@@ -42,6 +45,8 @@ moving on.
 | Port conflict | Compose failed on port 8000 already in use on the host. | Host port made configurable through `API_PORT`. |
 | Thin controllers | Moved paging/lookup into `MovieService`; services injected with `Depends`. | Controllers only translate HTTP ↔ service calls; schemas act as the view. |
 | FastAPI conventions | Renamed `controllers/` to `routers/`; kept `schemas/` and `repositories/`. | Matches the FastAPI documentation; ORM and API contracts stay separate, SQL stays isolated. |
+| Lifespan | Kept the FastAPI lifespan for the startup import. | Idiomatic FastAPI (`on_event` is deprecated); building the app has no side effects; shutdown disposes the engine. |
+| Seeding script | Not adopted. | A separate process cannot populate the API's in-memory database; it would require a file-based SQLite. |
 | Tooling | `ruff` (PEP 8 + Google-style docstrings) and `pytest` run after each step. | Clean lint and all tests passing before each commit. |
 
 ## Commands run by the agent
