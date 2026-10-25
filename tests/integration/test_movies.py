@@ -140,6 +140,19 @@ def test_names_are_split_and_deduplicated(client_for: ClientFactory) -> None:
     assert second["producers"] == ["Joel Silver", "Steven Perry"]
 
 
+def test_commas_without_spaces_separate_names(client_for: ClientFactory) -> None:
+    client = client_for(
+        """
+        2020;First;Fox,MGM ,Lionsgate;Joel Silver,Steven Perry,AND Jon Peters;yes
+        """
+    )
+
+    (movie,) = client.get(URL).json()["items"]
+
+    assert movie["studios"] == ["Fox", "Lionsgate", "MGM"]
+    assert movie["producers"] == ["Joel Silver", "Jon Peters", "Steven Perry"]
+
+
 def test_startup_fails_on_invalid_csv(tmp_path) -> None:
     csv_path = tmp_path / "invalid.csv"
     csv_path.write_text(
