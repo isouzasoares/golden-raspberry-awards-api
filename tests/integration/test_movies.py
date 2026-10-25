@@ -42,6 +42,20 @@ def test_winners_match_csv(client: TestClient) -> None:
     assert {(m["year"], m["title"]) for m in body["items"]} == expected
 
 
+def test_filter_non_winners(client: TestClient) -> None:
+    body = client.get(URL, params={"winner": False, "limit": 500}).json()
+
+    assert body["total"] == 206 - 42
+    assert not any(movie["winner"] for movie in body["items"])
+
+
+def test_filter_by_year_and_winner(client: TestClient) -> None:
+    body = client.get(URL, params={"year": 1980, "winner": False}).json()
+
+    assert body["total"] == 9
+    assert all(m["year"] == 1980 and not m["winner"] for m in body["items"])
+
+
 def test_filter_by_year(client: TestClient) -> None:
     body = client.get(URL, params={"year": 1980}).json()
 
