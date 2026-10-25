@@ -37,6 +37,10 @@ moving on.
 12. **Separators without spaces** — "When there is a comma without spaces, is it
     split too?"
 13. **Import tests** — "Did you also write a test for this CSV import?"
+14. **Studios** — "Did you do the same for studios?"
+15. **Repository filters** (developer's suggestion) — "In `_filtered`, why not
+    use `if year` / `if winner`? We could also use kwargs to build a single
+    `where`."
 
 ## Agent workflow and decisions
 
@@ -61,6 +65,8 @@ moving on.
 | Name parsing | Separators matched case-insensitively (`,`, `&`, `and`); names cleaned (NFKC, whitespace). | `"A AND B"` was read as a single producer and `JOEL SILVER` / `Joel Silver` as two, splitting award histories. |
 | Slug identity | `producers`/`studios` got a unique `slug` (no case, accents or punctuation); best-cased spelling kept for display. | Different spellings of one person share their awards; verified that no names in the dataset are merged by mistake. |
 | Separators without spaces | Verified `A,B`, `A ,B`, `A,B,AND C` and `A&B`; added an integration test. | Spaces around `,` and `&` are optional; `and` needs surrounding spaces so names like `Anderson` stay intact. |
+| Studios | Confirmed studios share the same split and slug identity as producers. | One `split_names` and one `NamedEntity` mixin for both. |
+| Repository filters | Following the developer's suggestion to use kwargs, replaced `_filtered` with `filter_by(**criteria)` built from the non-`None` filters; added `winner=false` tests. | A truthiness check would silently drop `winner=False`; the public signature stays explicit. |
 | Tooling | `ruff` (PEP 8 + Google-style docstrings) and `pytest` run after each step. | Clean lint and all tests passing before each commit. |
 
 ## Commands run by the agent
